@@ -1,5 +1,9 @@
 import '@logseq/libs';
 
+let hints: Record<string, Element> = {};
+const reverseHints: Map<Element, string> = new Map();
+const hintKeys = 'asdfghjkl';
+
 async function main() {
   logseq.App.showMsg('Link Hints loaded!');
 
@@ -11,6 +15,7 @@ async function main() {
     return;
   }
 
+  addInputCapture();
   const linkContainer = await addLinkContainer();
 
   observeLinkChanges(observeRoot, ({target, isIntersecting}: IntersectionObserverEntry) => {
@@ -30,7 +35,7 @@ async function main() {
   async () => {
     console.log('pressed!')
     const fragment = document.createDocumentFragment();
-    const gen = keyGenerator();
+    // const gen = keyGenerator();
     
     // previous observations don't seem to give us enough info to know where the links are now
     // so observe again (instead of getBoundingClientRect directly which has performance issues)
@@ -45,9 +50,10 @@ async function main() {
 
     await delay(0);
     console.log('posMap', currentPosMap);
+    assignKeys(currentPosMap);
 
     currentPosMap.forEach((boundingRect, el) => {
-      fragment.appendChild(createHint(el, boundingRect, gen.next().value));
+      fragment.appendChild(createHint(el, boundingRect, reverseHints.get(el) || ''));
     });
 
     linkContainer.appendChild(fragment);
@@ -55,20 +61,20 @@ async function main() {
 
     beginCaptureInput();
   });
+}
 
-  // TODO find proper colors for hints
-  logseq.provideStyle(`
-    #link-hints-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    .link-hint {
-      background: white;
-      position: relative;
-    }
-  `);
+// TODO replace this with a proper impl
+function assignKeys(map: Map<Element, unknown>) {
+  let i = 0;
+  const len = hintKeys.length;
+  hints = {};
+  reverseHints.clear();
+  map.forEach((_, el) => {
+    const keys = `${hintKeys[Math.floor(i / len)]}${hintKeys[i % len]}`
+    hints[keys] = el
+    reverseHints.set(el, keys);
+    i += 1;
+  })
 }
 
 function observeLinkChanges(
@@ -108,15 +114,83 @@ function findLinks(node: Node) {
 }
 
 function addLinkContainer() {
+
+  // TODO find proper colors for hints
+  logseq.provideStyle(`
+    #link-hints-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .link-hint {
+      background: white;
+      position: absolute;
+      word-break: normal;
+    }
+
+    #link-hints-input-jail {
+      position: absolute;
+      height: 0px;
+    }
+  `);
+
   logseq.provideUI({
     key: 'link-hints-container',
     path: 'body',
-    template: '<div id="link-hints-container"></div>'
+    template: `
+      <div id="link-hints-container"></div>
+    `,
   });
 
   return new Promise<Element>((resolve) => {
     setTimeout(() => resolve(parent.document.getElementById('link-hints-container') as Element), 0)
   });
+}
+
+function addInputCapture() {
+  let lastVal = null;
+
+  logseq.provideModel({
+    captureInput(data) {
+      console.log(data);
+      if (data.value === lastVal) cleanup();
+      lastVal = data.value
+      
+      const matches = getMatchingLinks(data.value);
+      if (matches.length === 0) cleanup();
+
+      if (matches.length === 1) {
+        cleanup();
+        const page = matches[0].dataset.ref;
+        console.log(page);
+        if (page) logseq.Editor.scrollToBlockInPage(page,'');
+      }
+    },
+  })
+
+  logseq.provideUI({
+    key: 'link-hints-input-jail',
+    path: 'body',
+    template: `
+      <input id="link-hints-input-jail" data-on-keyup="captureInput" />
+    `,
+  });
+}
+
+function cleanup() {
+  const linkhints = parent.document.getElementById('link-hints-container');
+  if (linkhints) linkhints.innerHTML = '';
+
+  parent.document.getElementById('link-hints-input-jail')?.remove();
+
+  addInputCapture();
+}
+
+function getMatchingLinks(value) {
+  if (value.length > 2) return []
+  if (value.length < 2) return ['fake', 'options']
+  return [hints[value]]
 }
 
 function* keyGenerator(): Generator<string> {
@@ -127,11 +201,12 @@ function* keyGenerator(): Generator<string> {
 
 function createHint(element: Element, boundingRect: DOMRectReadOnly, keys: string) {
   const hint = document.createElement('div');
+  const text = document.createElement('span');
+  hint.appendChild(text);
 
-  hint.textContent = keys;
+  text.textContent = keys;
   hint.className = 'link-hint';
 
-  hint.style.position = 'relative';
   hint.style.top = `${boundingRect.top}px`;
   hint.style.left = `${boundingRect.left}px`;
 
@@ -139,7 +214,24 @@ function createHint(element: Element, boundingRect: DOMRectReadOnly, keys: strin
 }
 
 function beginCaptureInput() {
-  // TODO implement
+  // const onInput = (e: Event) => {
+  //   e.stopPropagation();
+  //   console.log(e);
+  // }
+
+  // const container = parent.document.getElementById('app-container');
+  // if (container === null) return;
+
+  // container.addEventListener('keyup', onInput);
+  // container.addEventListener('keydown', onInput);
+
+  // setTimeout(() => {
+  //   container.removeEventListener('keyup', onInput);
+  //   container.removeEventListener('keydown', onInput);
+  // }, 10000)
+
+  parent.document.getElementById('link-hints-input-jail')?.focus()
+  console.log(document.activeElement);
 }
 
 function delay(ms: number) {
