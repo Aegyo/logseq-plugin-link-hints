@@ -170,18 +170,20 @@ function addInputCapture() {
         if (page) logseq.Editor.scrollToBlockInPage(page,'');
       }
     },
+    cleanup,
   })
 
   logseq.provideUI({
     key: 'link-hints-input-jail',
     path: 'body',
     template: `
-      <input id="link-hints-input-jail" data-on-keyup="captureInput" />
+      <input id="link-hints-input-jail" data-on-keyup="captureInput" data-on-focusout="cleanup" />
     `,
   });
 }
 
 function cleanup() {
+  console.log('called cleanup')
   const linkhints = parent.document.getElementById('link-hints-container');
   if (linkhints) linkhints.innerHTML = '';
 
@@ -193,7 +195,8 @@ function cleanup() {
 function getMatchingLinks(value) {
   if (value.length > 2) return []
   if (value.length < 2) return ['fake', 'options']
-  return [hints[value]]
+  const el = hints[value]
+  return el ? [el] : []
 }
 
 function* keyGenerator(): Generator<string> {
