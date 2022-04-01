@@ -115,7 +115,6 @@ function findLinks(node: Node) {
 
 function addLinkContainer() {
 
-  // TODO find proper colors for hints
   logseq.provideStyle(`
     #link-hints-container {
       position: absolute;
@@ -124,7 +123,11 @@ function addLinkContainer() {
     }
 
     .link-hint {
-      background: white;
+      background: var(--ls-primary-background-color);
+      color: var(--ls-link-text-hover-color);
+      padding: 0 0.25em;
+      border-radius: 0.25em;
+      box-shadow: 0 0 0.25em;
       position: absolute;
       word-break: normal;
     }
@@ -207,8 +210,8 @@ function createHint(element: Element, boundingRect: DOMRectReadOnly, keys: strin
   text.textContent = keys;
   hint.className = 'link-hint';
 
-  hint.style.top = `${boundingRect.top}px`;
-  hint.style.left = `${boundingRect.left}px`;
+  hint.style.top = `calc(${boundingRect.top}px - 1rem)`;
+  hint.style.left = `calc(${boundingRect.left}px - 1.5em)`;
 
   return hint
 }
