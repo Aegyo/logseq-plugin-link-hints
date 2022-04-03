@@ -7,13 +7,17 @@ const hintKeys = "fjdkslaghrucm";
 const doc = window.parent.document;
 
 type Mode = {
+  id: string;
   keybind: string;
+  description: string;
   action: (match: Element) => void;
 };
 
 const modes: Mode[] = [
   {
+    id: "link-hints-follow",
     keybind: "f",
+    description: "Link Hints: follow",
     action: (match: Element) => {
       const page = (match as unknown as HTMLOrSVGElement).dataset?.ref;
       if (page) logseq.Editor.scrollToBlockInPage(page, "");
@@ -39,11 +43,11 @@ async function main() {
   await delay(2000);
   const observer = createObserver(observeRoot, ".page-ref, .recent-item");
 
-  for (const { keybind, action } of modes) {
+  for (const { id, keybind, description, action } of modes) {
     logseq.App.registerCommandPalette(
       {
-        key: "link-hints-activate",
-        label: "Show Link Hints",
+        key: id,
+        label: description,
         keybinding: {
           mode: "non-editing",
           binding: keybind,
