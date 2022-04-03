@@ -1,3 +1,4 @@
 export function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  // eslint-disable-next-line no-promise-executor-return
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

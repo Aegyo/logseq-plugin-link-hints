@@ -1,6 +1,6 @@
 {
   "extends": "@tsconfig/node17/tsconfig.json",
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", ".eslintrc.js"],
   "compilerOptions": {
     "lib": ["DOM", "ESNext"]
   }
