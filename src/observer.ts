@@ -1,4 +1,11 @@
-export function createObserver(root: ParentNode, selector: string) {
+import { delay } from "./utils";
+
+type Observer = {
+  getVisible(): Promise<Map<Element, DOMRectReadOnly>>;
+  disconnect(): void;
+}
+
+export function createObserver(root: ParentNode, selector: string): Observer {
   const visible = new Set<Element>();
   
   const intersectionObs = new IntersectionObserver((entries) => {
@@ -61,8 +68,4 @@ function find(root: Node, selector: string) {
   }
 
   return [];
-}
-
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
