@@ -45,8 +45,8 @@ function createHint(boundingRect: DOMRectReadOnly, keys: string) {
   text.textContent = keys;
   hint.className = 'link-hint';
 
-  hint.style.top = `calc(${boundingRect.top}px - 1rem)`;
-  hint.style.left = `max(2px, calc(${boundingRect.left}px - 1.5em))`;
+  hint.style.top = `calc(${boundingRect.top}px - 0.1em)`;
+  hint.style.left = `max(2px, calc(${boundingRect.left}px - 2em))`;
 
   return hint
 }
