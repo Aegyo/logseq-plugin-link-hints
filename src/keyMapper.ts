@@ -1,10 +1,12 @@
+import { empty, insert, Trie } from "./trie";
+
 export function mapKeys<T>(things: T[], keys: string): {
-  mapping: Map<string, T>,
+  mapping: Trie<T>,
   reverse: Map<T, string>,
 } {
   const chars = new Set(keys);
 
-  const mapping = new Map<string, T>();
+  const mapping: Trie<T> = empty();
   const reverse = new Map<T, string>();
 
   const tlen = things.length;
@@ -13,7 +15,7 @@ export function mapKeys<T>(things: T[], keys: string): {
   const combos = keyCombos(chars, maxKeys);
 
   things.forEach((thing, index) => {
-    mapping.set(combos[index], thing);
+    insert(mapping, thing, combos[index])
     reverse.set(thing, combos[index]);
   });
 

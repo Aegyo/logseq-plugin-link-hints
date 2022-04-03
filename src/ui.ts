@@ -1,7 +1,8 @@
 import { mapKeys } from "./keyMapper";
+import { empty, getNode, Trie } from "./trie";
 import { delay } from "./utils";
 
-let hints: Map<string, Element> = new Map();
+let hints: Trie<Element> = empty();
 let onMatchCallback: (matched: Element) => void = () => {};
 
 const inputCaptureID = 'link-hints-input-jail';
@@ -78,13 +79,20 @@ function checkInput() {
     if (data.value === lastVal) cleanup();
     lastVal = data.value
     
-    const matches = getMatchingLinks(data.value);
+    const trieNode = getNode(hints, data.value);
     
-    if (matches.length === 0) cleanup();
-
-    if (matches.length === 1) {
+    if (!trieNode) {
       cleanup();
-      onMatchCallback(matches[0] as Element);
+    }
+    else if (trieNode.value) {
+      cleanup();
+      onMatchCallback(trieNode.value);
+    }
+    else if (!Object.keys(trieNode.children).length) {
+      cleanup()
+    }
+    else {
+      // TODO filter the shown hints to only trieNode.children
     }
   }
 }
@@ -96,13 +104,6 @@ function cleanup() {
 
   parent.document.getElementById(inputCaptureID)?.remove();
 }
-
-function getMatchingLinks(value: string) {
-  if (value.length > 2) return []
-  const el = hints.get(value);
-  return el ? [el] : ['fake', 'options']
-}
-
 
 export async function addLinkContainer(): Promise<Element> {
   logseq.provideStyle(`
