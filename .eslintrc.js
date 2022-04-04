@@ -27,6 +27,7 @@ module.exports = {
       "WithStatement",
     ],
     "no-console": "off",
+    "@typescript-eslint/no-use-before-define": "off",
   },
   globals: {
     logseq: "readonly",

@@ -1,9 +1,10 @@
+import { Action } from "./actions";
 import { mapKeys } from "./keyMapper";
 import { empty, getNode, Trie } from "./trie";
 import { delay } from "./utils";
 
 let hints: Trie<Element> = empty();
-let onMatchCallback: (matched: Element) => void = () => {};
+let onMatchCallback: Action = () => {};
 
 const inputCaptureID = "link-hints-input-jail";
 
@@ -91,7 +92,7 @@ export async function beginHinting(
   container: Element,
   elements: Map<Element, DOMRectReadOnly>,
   hintKeys: string,
-  onMatch: (matched: Element) => void
+  onMatch: Action
 ) {
   const { mapping, reverse } = mapKeys([...elements.keys()], hintKeys);
   const fragment = createHintsFragment(elements, reverse);

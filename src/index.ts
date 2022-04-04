@@ -2,6 +2,7 @@ import "@logseq/libs";
 import { addInputCapture, addLinkContainer, beginHinting } from "./ui";
 import { createObserver } from "./observer";
 import { delay } from "./utils";
+import { Action, actions, PredefinedAction } from "./actions";
 
 const hintKeys = "fjdkslaghrucm";
 const doc = window.parent.document;
@@ -10,18 +11,15 @@ type Mode = {
   id: string;
   keybind: string;
   description: string;
-  action: (match: Element) => void;
+  action: PredefinedAction | Action;
 };
 
 const modes: Mode[] = [
   {
     id: "link-hints-follow",
-    keybind: "f",
     description: "Link Hints: follow",
-    action: (match: Element) => {
-      const page = (match as unknown as HTMLOrSVGElement).dataset?.ref;
-      if (page) logseq.Editor.scrollToBlockInPage(page, "");
-    },
+    action: "click",
+    keybind: "f",
   },
 ];
 
@@ -41,9 +39,11 @@ async function main() {
 
   // TODO figure out why left menu links don't get observed without this delay
   await delay(2000);
-  const observer = createObserver(observeRoot, ".page-ref, .recent-item");
+  const observer = createObserver(observeRoot, ".page-ref, .recent-item > a");
 
   for (const { id, keybind, description, action } of modes) {
+    const onMatch = action instanceof Function ? action : actions[action];
+
     logseq.App.registerCommandPalette(
       {
         key: id,
@@ -55,7 +55,7 @@ async function main() {
       },
       async () => {
         const currentPosMap = await observer.getVisible();
-        beginHinting(linkContainer, currentPosMap, hintKeys, action);
+        beginHinting(linkContainer, currentPosMap, hintKeys, onMatch);
       }
     );
   }
