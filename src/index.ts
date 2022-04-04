@@ -45,7 +45,10 @@ async function main() {
 
   // TODO figure out why left menu links don't get observed without this delay
   await delay(2000);
-  const observer = createObserver(observeRoot, ".page-ref, .recent-item > a");
+  const observer = createObserver(
+    observeRoot,
+    ".page-ref, .recent-item > a, input[type='checkbox']"
+  );
 
   for (const { id, keybind, description, action } of modes) {
     const onMatch = action instanceof Function ? action : actions[action];
