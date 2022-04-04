@@ -53,7 +53,7 @@ function checkInput() {
     if (data.value === lastVal) cleanup();
     lastVal = data.value;
 
-    const trieNode = getNode(hints, data.value);
+    const trieNode = getNode(hints, data.value.toLowerCase());
 
     if (!trieNode) {
       cleanup();
