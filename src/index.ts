@@ -27,6 +27,12 @@ const modes: Mode[] = [
     action: "shiftClick",
     keybind: "shift+f",
   },
+  {
+    id: "link-hints-ctrl-follow",
+    description: "Link Hints: Ctrl Click",
+    action: "ctrlClick",
+    keybind: "ctrl+f",
+  },
 ];
 
 async function main() {
