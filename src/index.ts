@@ -1,9 +1,9 @@
 import "@logseq/libs";
-import { addInputCapture, provideUI, beginHinting } from "./ui";
-import { createObserver } from "./observer";
+import { provideUI, beginHinting } from "./ui";
+import { createObserver, Observer } from "./observer";
 import { delay } from "./utils";
 import { Action, actions, PredefinedAction } from "./actions";
-import { Settings, settingsSchema } from "./settings";
+import { Settings, SettingsKeys, settingsSchema } from "./settings";
 
 const doc = window.parent.document;
 
@@ -11,10 +11,67 @@ logseq.useSettingsSchema(settingsSchema);
 
 type Mode = {
   id: string;
-  keybind: string;
+  keybind: SettingsKeys;
   description: string;
   action: PredefinedAction | Action;
 };
+
+const modes: Mode[] = [
+  {
+    id: "link-hints-click",
+    description: "Link Hints: Click",
+    action: "click",
+    keybind: "click",
+  },
+  {
+    id: "link-hints-shift-click",
+    description: "Link Hints: Shift Click",
+    action: "shiftClick",
+    keybind: "shiftClick",
+  },
+  {
+    id: "link-hints-ctrl-click",
+    description: "Link Hints: Ctrl Click",
+    action: "ctrlClick",
+    keybind: "ctrlClick",
+  },
+];
+
+const modeSettings: Record<string, Mode> = modes.reduce(
+  (acc, m) => ({ ...acc, [m.keybind]: m }),
+  {}
+);
+
+function registerMode(
+  { id, description, keybind, action }: Mode,
+  observer: Observer
+) {
+  // eslint-disable-next-line prefer-destructuring
+  const settings = logseq.settings as unknown as Settings;
+
+  const onMatch = action instanceof Function ? action : actions[action];
+  const shortcut = settings[keybind];
+
+  logseq.App.registerCommandPalette(
+    {
+      key: id,
+      label: description,
+      keybinding: {
+        mode: "non-editing",
+        binding: shortcut,
+      },
+    },
+    async () => {
+      const currentPosMap = await observer.getVisible();
+      beginHinting(currentPosMap, settings.hintKeys, onMatch);
+    }
+  );
+}
+
+function unregisterMode({ id }: Mode) {
+  const cmdID = `${logseq.baseInfo.id}/${id}`;
+  logseq.App.unregister_plugin_simple_command(cmdID);
+}
 
 async function main() {
   logseq.App.showMsg("Link Hints loaded!");
@@ -27,7 +84,6 @@ async function main() {
     return;
   }
 
-  addInputCapture();
   await provideUI();
 
   // TODO figure out why left menu links don't get observed without this delay
@@ -37,55 +93,38 @@ async function main() {
     ".page-ref, #left-sidebar a, input[type='checkbox']"
   );
 
-  function registerKeybinds() {
-    // eslint-disable-next-line prefer-destructuring
-    const settings = logseq.settings as unknown as Settings;
-
-    const modes: Mode[] = [
-      {
-        id: "link-hints-click",
-        description: "Link Hints: Click",
-        action: "click",
-        keybind: settings.click,
-      },
-      {
-        id: "link-hints-shift-click",
-        description: "Link Hints: Shift Click",
-        action: "shiftClick",
-        keybind: settings.shiftClick,
-      },
-      {
-        id: "link-hints-ctrl-click",
-        description: "Link Hints: Ctrl Click",
-        action: "ctrlClick",
-        keybind: settings.ctrlClick,
-      },
-    ];
-
-    for (const { id, keybind, description, action } of modes) {
-      const onMatch = action instanceof Function ? action : actions[action];
-
-      logseq.App.registerCommandPalette(
-        {
-          key: id,
-          label: description,
-          keybinding: {
-            mode: "non-editing",
-            binding: keybind,
-          },
-        },
-        async () => {
-          const currentPosMap = await observer.getVisible();
-          beginHinting(currentPosMap, settings.hintKeys, onMatch);
-        }
-      );
-    }
+  for (const mode of modes) {
+    registerMode(mode, observer);
   }
 
-  registerKeybinds();
+  let oldSettings = { ...logseq.settings! };
+  function handleSettingsChanged(newSettings: typeof oldSettings) {
+    console.log(oldSettings, newSettings);
+    const tmp = oldSettings;
+    oldSettings = newSettings;
 
-  // this just complains about command already existing
-  // logseq.addListener("settings:changed", console.log);
+    Object.entries(newSettings).forEach(([key, value]) => {
+      if (value !== tmp[key]) {
+        const mode = modeSettings[key];
+        if (mode) {
+          unregisterMode(mode);
+          registerMode(mode, observer);
+          logseq.App.showMsg(
+            `Updated shortcut for '${mode.description}' to '${value}'`
+          );
+        }
+      }
+    });
+  }
+
+  let settingsChangedTimeout: number;
+  logseq.on("settings:changed", (after) => {
+    clearTimeout(settingsChangedTimeout);
+    settingsChangedTimeout = setTimeout(
+      () => handleSettingsChanged(after),
+      1000
+    );
+  });
 }
 
 logseq.ready(main).catch(console.error);

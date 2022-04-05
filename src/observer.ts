@@ -1,6 +1,6 @@
 import { delay } from "./utils";
 
-type Observer = {
+export type Observer = {
   getVisible(): Promise<Map<Element, DOMRectReadOnly>>;
   disconnect(): void;
 };
