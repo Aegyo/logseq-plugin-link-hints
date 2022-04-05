@@ -7,6 +7,7 @@ let hints: Trie<Element> = empty();
 let onMatchCallback: Action = () => {};
 
 const inputCaptureID = "link-hints-input-jail";
+const hintsContainerID = "link-hints-container";
 
 const doc = window.parent.document;
 
@@ -41,61 +42,61 @@ function createHintsFragment(
 
 function cleanup() {
   console.log("called cleanup");
-  const linkhints = doc.getElementById("link-hints-container");
+  const linkhints = doc.getElementById(hintsContainerID);
   if (linkhints) linkhints.innerHTML = "";
 
-  doc.getElementById(inputCaptureID)?.remove();
+  const input = doc.getElementById(inputCaptureID) as HTMLInputElement;
+  if (input) {
+    input.value = "";
+    input.blur();
+  }
 }
 
-function checkInput() {
-  let lastVal: string | null = null;
+function checkInput(event: KeyboardEvent) {
+  if (event.code === "Escape") {
+    cleanup();
+    return;
+  }
 
-  return (data: { value: string }) => {
-    // TODO should have a better way of ESC cancelling the hints than this
-    if (data.value === lastVal) cleanup();
-    lastVal = data.value;
+  const input = event.target as HTMLInputElement;
+  if (!input) {
+    cleanup();
+    return;
+  }
 
-    const trieNode = getNode(hints, data.value.toLowerCase());
+  const trieNode = getNode(hints, input.value.toLowerCase());
 
-    if (!trieNode) {
-      cleanup();
-    } else if (trieNode.value) {
-      cleanup();
-      onMatchCallback(trieNode.value);
-    } else if (!Object.keys(trieNode.children).length) {
-      cleanup();
-    } else {
-      // TODO filter the shown hints to only trieNode.children
-    }
-  };
+  if (!trieNode) {
+    cleanup();
+  } else if (trieNode.value) {
+    cleanup();
+    onMatchCallback(trieNode.value);
+  } else if (!Object.keys(trieNode.children).length) {
+    cleanup();
+  } else {
+    // TODO filter the shown hints to only trieNode.children
+  }
 }
+
 export async function addInputCapture(): Promise<HTMLElement | null> {
-  logseq
-    .provideModel({
-      checkInput: checkInput(),
-      cleanup,
-    })
-    .provideUI({
-      key: inputCaptureID,
-      path: "body",
-      template: `
-      <input id="${inputCaptureID}"
-             data-on-keyup="checkInput"
-             data-on-focusout="cleanup"
-      />
-    `,
-    });
+  const input = document.createElement("input");
+  input.id = inputCaptureID;
+  input.addEventListener("keyup", checkInput);
+  input.addEventListener("focusout", cleanup);
+  doc.getElementById("link-hints-wrapper")?.appendChild(input);
 
   await delay(0);
-  return doc.getElementById("link-hints-input-jail");
+  return doc.getElementById(inputCaptureID);
 }
 
 export async function beginHinting(
-  container: Element,
   elements: Map<Element, DOMRectReadOnly>,
   hintKeys: string,
   onMatch: Action
 ) {
+  const container = doc.getElementById(hintsContainerID);
+  if (!container) return;
+
   const { mapping, reverse } = mapKeys([...elements.keys()], hintKeys);
   const fragment = createHintsFragment(elements, reverse);
   container.appendChild(fragment);
@@ -104,15 +105,15 @@ export async function beginHinting(
   onMatchCallback = onMatch;
 
   // steal focus so we can watch inputs and prevent other hotkeys
-  const input = await addInputCapture();
+  const input = doc.getElementById(inputCaptureID);
   input?.focus();
 }
 
-export async function addLinkContainer(): Promise<Element> {
+export async function provideUI() {
   logseq
     .provideStyle(
       `
-    #link-hints-container {
+    #${hintsContainerID} {
       position: fixed;
       top: 0;
       left: 0;
@@ -129,7 +130,7 @@ export async function addLinkContainer(): Promise<Element> {
       word-break: normal;
     }
 
-    #link-hints-input-jail {
+    #${inputCaptureID} {
       position: fixed;
       height: 0px;
     }
@@ -139,10 +140,13 @@ export async function addLinkContainer(): Promise<Element> {
       key: "link-hints-container",
       path: "body",
       template: `
-      <div id="link-hints-container"></div>
+      <div id="link-hints-wrapper">
+        <div id="${hintsContainerID}"></div>
+      </div>
     `,
     });
 
   await delay(0);
-  return doc.getElementById("link-hints-container") as Element;
+
+  addInputCapture();
 }

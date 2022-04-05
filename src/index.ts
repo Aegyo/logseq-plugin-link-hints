@@ -1,5 +1,5 @@
 import "@logseq/libs";
-import { addInputCapture, addLinkContainer, beginHinting } from "./ui";
+import { addInputCapture, provideUI, beginHinting } from "./ui";
 import { createObserver } from "./observer";
 import { delay } from "./utils";
 import { Action, actions, PredefinedAction } from "./actions";
@@ -47,7 +47,7 @@ async function main() {
   }
 
   addInputCapture();
-  const linkContainer = await addLinkContainer();
+  await provideUI();
 
   // TODO figure out why left menu links don't get observed without this delay
   await delay(2000);
@@ -70,7 +70,7 @@ async function main() {
       },
       async () => {
         const currentPosMap = await observer.getVisible();
-        beginHinting(linkContainer, currentPosMap, hintKeys, onMatch);
+        beginHinting(currentPosMap, hintKeys, onMatch);
       }
     );
   }
