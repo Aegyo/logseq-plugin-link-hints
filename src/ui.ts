@@ -113,7 +113,7 @@ export async function addLinkContainer(): Promise<Element> {
     .provideStyle(
       `
     #link-hints-container {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       z-index: 9999999;
@@ -130,7 +130,7 @@ export async function addLinkContainer(): Promise<Element> {
     }
 
     #link-hints-input-jail {
-      position: absolute;
+      position: fixed;
       height: 0px;
     }
   `
