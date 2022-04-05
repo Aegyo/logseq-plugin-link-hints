@@ -47,7 +47,7 @@ async function main() {
   await delay(2000);
   const observer = createObserver(
     observeRoot,
-    ".page-ref, .recent-item > a, input[type='checkbox']"
+    ".page-ref, #left-sidebar a, input[type='checkbox']"
   );
 
   for (const { id, keybind, description, action } of modes) {
