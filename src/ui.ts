@@ -4,7 +4,8 @@ import { mapKeys } from "./keyMapper";
 import { empty, getNode, Trie } from "./trie";
 import { delay } from "./utils";
 
-let hints: Trie<Element> = empty();
+let linkTrie: Trie<Element> = empty();
+const hintMap: Map<string, HTMLElement> = new Map();
 let onMatchCallback: Action = () => {};
 
 const inputCaptureID = "link-hints-input-jail";
@@ -30,12 +31,17 @@ function createHint(boundingRect: DOMRectReadOnly, keys: string) {
 
 function createHintsFragment(
   elements: Map<Element, DOMRectReadOnly>,
-  hintMap: Map<Element, string>
+  linkHintsMap: Map<Element, string>
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
 
   elements.forEach((boundingRect, el) => {
-    fragment.appendChild(createHint(boundingRect, hintMap.get(el) || ""));
+    const hint = linkHintsMap.get(el);
+    if (hint) {
+      const hintElem = createHint(boundingRect, hint);
+      fragment.appendChild(hintElem);
+      hintMap.set(hint, hintElem);
+    }
   });
 
   return fragment;
@@ -51,6 +57,8 @@ function cleanup() {
     input.value = "";
     input.blur();
   }
+
+  hintMap.clear();
 }
 
 let prevBlock: BlockEntity | null;
@@ -74,7 +82,7 @@ function checkInput(event: KeyboardEvent) {
     return;
   }
 
-  const trieNode = getNode(hints, input.value.toLowerCase());
+  const trieNode = getNode(linkTrie, input.value.toLowerCase());
 
   if (!trieNode) {
     cleanup();
@@ -84,7 +92,13 @@ function checkInput(event: KeyboardEvent) {
   } else if (!Object.keys(trieNode.children).length) {
     cleanup();
   } else {
-    // TODO filter the shown hints to only trieNode.children
+    for (const [hint, elem] of hintMap) {
+      if (hint.startsWith(input.value.toLowerCase())) {
+        elem.style.visibility = "visible";
+      } else {
+        elem.style.visibility = "hidden";
+      }
+    }
   }
 }
 
@@ -113,7 +127,7 @@ export async function beginHinting(
   const fragment = createHintsFragment(elements, reverse);
   container.appendChild(fragment);
 
-  hints = mapping;
+  linkTrie = mapping;
   onMatchCallback = onMatch;
 
   // steal focus so we can watch inputs and prevent other hotkeys
