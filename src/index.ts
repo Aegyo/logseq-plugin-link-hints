@@ -9,11 +9,13 @@ const doc = window.parent.document;
 
 logseq.useSettingsSchema(settingsSchema);
 
+type Targets = "links" | "blocks";
 type Mode = {
   id: string;
   keybind: SettingsKeys;
   description: string;
   action: PredefinedAction | Action;
+  targets: Targets;
 };
 
 const modes: Mode[] = [
@@ -22,18 +24,35 @@ const modes: Mode[] = [
     description: "Link Hints: Click",
     action: "click",
     keybind: "click",
+    targets: "links",
   },
   {
     id: "link-hints-shift-click",
     description: "Link Hints: Shift Click",
     action: "shiftClick",
     keybind: "shiftClick",
+    targets: "links",
   },
   {
     id: "link-hints-ctrl-click",
     description: "Link Hints: Ctrl Click",
     action: "ctrlClick",
     keybind: "ctrlClick",
+    targets: "links",
+  },
+  {
+    id: "link-hints-edit-block",
+    description: "Link Hints: Edit Block",
+    action: "editBlock",
+    keybind: "editBlock",
+    targets: "blocks",
+  },
+  {
+    id: "link-hints-jump-to-block",
+    description: "Link Hints: Jump to Block",
+    action: "jumpToBlock",
+    keybind: "jumpToBlock",
+    targets: "blocks",
   },
 ];
 
@@ -43,8 +62,8 @@ const modeSettings: Record<string, Mode> = modes.reduce(
 );
 
 function registerMode(
-  { id, description, keybind, action }: Mode,
-  observer: Observer
+  { id, description, keybind, action, targets }: Mode,
+  observers: Record<Targets, Observer>
 ) {
   // eslint-disable-next-line prefer-destructuring
   const settings = logseq.settings as unknown as Settings;
@@ -62,7 +81,7 @@ function registerMode(
       },
     },
     async () => {
-      const currentPosMap = await observer.getVisible();
+      const currentPosMap = await observers[targets].getVisible();
       beginHinting(currentPosMap, settings.hintKeys, onMatch);
     }
   );
@@ -88,13 +107,16 @@ async function main() {
 
   // TODO figure out why left menu links don't get observed without this delay
   await delay(2000);
-  const observer = createObserver(
-    observeRoot,
-    ".page-ref, #left-sidebar a, input[type='checkbox']"
-  );
+  const observers: Record<Targets, Observer> = {
+    links: createObserver(
+      observeRoot,
+      ".page-ref, #left-sidebar a, input[type='checkbox']"
+    ),
+    blocks: createObserver(observeRoot, ".ls-block"),
+  };
 
   for (const mode of modes) {
-    registerMode(mode, observer);
+    registerMode(mode, observers);
   }
 
   let oldSettings = { ...logseq.settings! };
@@ -108,7 +130,7 @@ async function main() {
         const mode = modeSettings[key];
         if (mode) {
           unregisterMode(mode);
-          registerMode(mode, observer);
+          registerMode(mode, observers);
           logseq.App.showMsg(
             `Updated shortcut for '${mode.description}' to '${value}'`
           );

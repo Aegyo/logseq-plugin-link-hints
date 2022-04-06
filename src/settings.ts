@@ -23,6 +23,20 @@ export const settingsSchema: SettingSchemaDesc[] = [
     default: "ctrl+f",
   },
   {
+    key: "editBlock",
+    type: "string",
+    title: "Shortcut: Edit Block",
+    description: "Display hints for blocks, and begin editing on match",
+    default: "g e",
+  },
+  {
+    key: "jumpToBlock",
+    type: "string",
+    title: "Shortcut: Jump to Block",
+    description: "Display hints for blocks, and jump to selection",
+    default: "g b",
+  },
+  {
     key: "hintKeys",
     type: "string",
     title: "Valid Hint Keys",
@@ -31,7 +45,13 @@ export const settingsSchema: SettingSchemaDesc[] = [
   },
 ];
 
-export type SettingsKeys = "click" | "shiftClick" | "ctrlClick" | "hintKeys";
+export type SettingsKeys =
+  | "click"
+  | "shiftClick"
+  | "ctrlClick"
+  | "editBlock"
+  | "jumpToBlock"
+  | "hintKeys";
 export type Settings = {
   [K in SettingsKeys]: any;
 };

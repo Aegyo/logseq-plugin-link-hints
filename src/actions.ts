@@ -24,10 +24,17 @@ const clickWithOptions =
     element.dispatchEvent(clickEvent);
   };
 
-export const jumpToBlock = (blockUUID: string, editMode = false) => {
+export const editBlock = (blockUUID: string) => {
   logseq.Editor.editBlock(blockUUID);
-  if (!editMode) logseq.Editor.exitEditingMode(true);
 };
+
+export const jumpToBlock = (blockUUID: string) => {
+  logseq.Editor.editBlock(blockUUID);
+  logseq.Editor.exitEditingMode(true);
+};
+
+const getBlockUUID = (elem: Element): string | undefined =>
+  elem.attributes.getNamedItem("blockid")?.value;
 
 // Typescript fudge so we can typecheck record values as actions,
 //  but also `keyof typeof` the object and get the actual keys instead of generic 'string'
@@ -37,6 +44,14 @@ export const actions = mkActions({
   click: clickWithOptions(),
   shiftClick: clickWithOptions({ shiftKey: true }),
   ctrlClick: clickWithOptions({ ctrlKey: true }),
+  editBlock: (match: Element) => {
+    const blockUUID = getBlockUUID(match);
+    if (blockUUID) editBlock(blockUUID);
+  },
+  jumpToBlock: (match: Element) => {
+    const blockUUID = getBlockUUID(match);
+    if (blockUUID) jumpToBlock(blockUUID);
+  },
 });
 
 export type PredefinedAction = keyof typeof actions;
