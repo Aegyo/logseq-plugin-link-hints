@@ -24,6 +24,11 @@ const clickWithOptions =
     element.dispatchEvent(clickEvent);
   };
 
+export const jumpToBlock = (blockUUID: string, editMode = false) => {
+  logseq.Editor.editBlock(blockUUID);
+  if (!editMode) logseq.Editor.exitEditingMode(true);
+};
+
 // Typescript fudge so we can typecheck record values as actions,
 //  but also `keyof typeof` the object and get the actual keys instead of generic 'string'
 const mkActions = <T extends Record<string, Action>>(actions: T): T => actions;

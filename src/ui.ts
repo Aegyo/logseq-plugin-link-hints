@@ -1,4 +1,5 @@
-import { Action } from "./actions";
+import { BlockEntity } from "@logseq/libs/dist/LSPlugin.user";
+import { Action, jumpToBlock } from "./actions";
 import { mapKeys } from "./keyMapper";
 import { empty, getNode, Trie } from "./trie";
 import { delay } from "./utils";
@@ -52,9 +53,18 @@ function cleanup() {
   }
 }
 
+let prevBlock: BlockEntity | null;
+
 function checkInput(event: KeyboardEvent) {
   if (event.code === "Escape") {
     cleanup();
+
+    // Unable to find a way to stop ESC also losing the current block selection,
+    //  so just jump back there
+    if (prevBlock) {
+      jumpToBlock(prevBlock.uuid);
+    }
+
     return;
   }
 
@@ -96,6 +106,8 @@ export async function beginHinting(
 ) {
   const container = doc.getElementById(hintsContainerID);
   if (!container) return;
+
+  prevBlock = await logseq.Editor.getCurrentBlock();
 
   const { mapping, reverse } = mapKeys([...elements.keys()], hintKeys);
   const fragment = createHintsFragment(elements, reverse);
