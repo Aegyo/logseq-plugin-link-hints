@@ -1,96 +1,19 @@
 import "@logseq/libs";
-import { provideUI, beginHinting } from "./ui";
+import { provideUI } from "./ui";
 import { createObserver, Observer } from "./observer";
 import { delay } from "./utils";
-import { Action, actions, PredefinedAction } from "./actions";
-import { Settings, SettingsKeys, settingsSchema } from "./settings";
+import { settingsSchema } from "./settings";
+import {
+  modes,
+  modeSettings,
+  registerMode,
+  Targets,
+  unregisterMode,
+} from "./modes";
 
 const doc = window.parent.document;
 
 logseq.useSettingsSchema(settingsSchema);
-
-type Targets = "links" | "blocks";
-type Mode = {
-  id: string;
-  keybind: SettingsKeys;
-  description: string;
-  action: PredefinedAction | Action;
-  targets: Targets;
-};
-
-const modes: Mode[] = [
-  {
-    id: "link-hints-click",
-    description: "Link Hints: Click",
-    action: "click",
-    keybind: "click",
-    targets: "links",
-  },
-  {
-    id: "link-hints-shift-click",
-    description: "Link Hints: Shift Click",
-    action: "shiftClick",
-    keybind: "shiftClick",
-    targets: "links",
-  },
-  {
-    id: "link-hints-ctrl-click",
-    description: "Link Hints: Ctrl Click",
-    action: "ctrlClick",
-    keybind: "ctrlClick",
-    targets: "links",
-  },
-  {
-    id: "link-hints-edit-block",
-    description: "Link Hints: Edit Block",
-    action: "editBlock",
-    keybind: "editBlock",
-    targets: "blocks",
-  },
-  {
-    id: "link-hints-jump-to-block",
-    description: "Link Hints: Jump to Block",
-    action: "jumpToBlock",
-    keybind: "jumpToBlock",
-    targets: "blocks",
-  },
-];
-
-const modeSettings: Record<string, Mode> = modes.reduce(
-  (acc, m) => ({ ...acc, [m.keybind]: m }),
-  {}
-);
-
-function registerMode(
-  { id, description, keybind, action, targets }: Mode,
-  observers: Record<Targets, Observer>
-) {
-  // eslint-disable-next-line prefer-destructuring
-  const settings = logseq.settings as unknown as Settings;
-
-  const onMatch = action instanceof Function ? action : actions[action];
-  const shortcut = settings[keybind];
-
-  logseq.App.registerCommandPalette(
-    {
-      key: id,
-      label: description,
-      keybinding: {
-        mode: "non-editing",
-        binding: shortcut,
-      },
-    },
-    async () => {
-      const currentPosMap = await observers[targets].getVisible();
-      beginHinting(currentPosMap, settings.hintKeys, onMatch);
-    }
-  );
-}
-
-function unregisterMode({ id }: Mode) {
-  const cmdID = `${logseq.baseInfo.id}/${id}`;
-  logseq.App.unregister_plugin_simple_command(cmdID);
-}
 
 async function main() {
   logseq.App.showMsg("Link Hints loaded!");
